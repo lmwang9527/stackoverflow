@@ -1,0 +1,33 @@
+---
+title: "Report"
+output: pdf_document
+always_allow_html: yes
+params:
+  n: NA
+---
+
+```{r,echo=FALSE,warning=FALSE, results="asis"}
+library(plotly)
+
+for (item in params$n) {
+  tmpFile <- tempfile(fileext = ".png")
+  export(item, file = tmpFile)
+  cat("![](",tmpFile,")\n")
+}
+
+#nplots <- length(params$n)
+
+# for (i in 1:nplots) {
+#   tmpFile <- tempfile(fileext = ".png")
+#   export(params$n[[i]], file = tmpFile) #%>%
+#   cat("![](",tmpFile,")\n")
+# }
+
+#  i <- 2
+#export(params$n[[i]], file = tmpFile)
+#lapply(params$n, export, file = tmpFile)
+#export(params$k, file = tmpFile)
+#for (i in 1:length(params$n)){
+#  export(params$n[[i]], file = tmpFile)
+#}
+```
