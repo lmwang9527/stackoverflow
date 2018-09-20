@@ -95,17 +95,13 @@ server <- function(input, output) {
       tempReport <- file.path(tempdir(), "report1.Rmd")
       file.copy("download_content.Rmd", tempReport, overwrite = TRUE)
       
-      #tempReport <- "download_content.Rmd"
       list.of.measurands <- c("Measurand1", "Measurand2") #....all my measurands
       
-      plots <- lapply(list.of.measurands, function(msrnd){
+      plots.gen <- lapply(list.of.measurands, function(msrnd){
         plot_ly(dummy.df, x = c(1:nrow(dummy.df)), y = ~get(msrnd), type = 'scatter', mode = 'markers')
       })
-      #plots <- gather.plots()
-      #str(plots)
-      # Set up parameters to pass to Rmd document
-      params <- list(n = plots)
-      #print(length(params$n))
+      
+      params <- list(n = plots.gen)
       
       rmarkdown::render(tempReport, output_file = file,
                         params = params,
