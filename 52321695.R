@@ -27,22 +27,3 @@ plot_ly(df %>% filter(group1=="high"), x = ~x, y = ~y, type = 'scatter',
 
 
 
-df <- data.frame(ID=1:3, 
-                 Week_A=c(6,6,7), 
-                 Weight_A=c(23,24,23), 
-                 Week_B=c(7,7,8), 
-                 Weight_B=c(25,26,27),
-                 Week_C=c(8,9,9),
-                 Weight_C=c(27,26,28))
-
-library(tidyverse)
-df_long <- df %>% gather(key="v", value="value", -ID) %>% 
-  separate(v, into=c("v1", "v2")) %>% 
-  spread(v1, value) %>% 
-  complete(ID, Week) %>% 
-  arrange(Week, ID)
-
-df_long
-
-df_long %>% select(-v2) %>% 
-  spread(Week, Weight, sep="_")
