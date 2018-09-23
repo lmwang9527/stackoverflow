@@ -1,0 +1,101 @@
+---
+  title: "test"
+output: 
+  flexdashboard::flex_dashboard:
+  theme: bootstrap
+runtime: shiny
+---
+  
+```{r setup,include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(tibbletime)
+library(dygraphs)
+library(magrittr)
+library(xts)
+```
+
+```{r global,include=FALSE}
+# generate data
+set.seed(1)
+dat <- data.frame(date = seq(as.Date("2018-01-01"), 
+                             as.Date("2018-06-30"), 
+                             "days"),
+                  sex = sample(c("male", "female"), 181, replace=TRUE),
+                  lang = sample(c("english", "spanish"), 181, replace=TRUE),
+                  age = sample(20:35, 181, replace=TRUE))
+dat <- sample_n(dat, 80)
+
+prep_dat <- function(dat, grpvars) {
+  group_syms <- rlang::syms(grpvars)
+  
+  dat_week <- dat %>% 
+    mutate(week=lubridate::floor_date(date, unit="week")) %>%
+    group_by(!!!group_syms) %>% 
+    tally()
+  
+  # if there is a second grouping column, spread the counts
+  if (grpvars[2] != "week") {
+    dat_week <- dat_week %>% 
+      spread(!!rlang::sym(grpvars[2]), n)
+  }
+  
+  ret_dat <- xts(dat_week, order.by=dat_week$week)
+  #week column is no longer needed
+  ret_dat$week <- NULL
+  ret_dat
+}
+
+choices <- list("All" = 1, "By Sex" = 2, "By Language" = 3)
+```
+
+Sidebar {.sidebar}
+=====================================
+  
+  ```{r}
+radioButtons("diss", label = "Disaggregation",
+             choices = choices, 
+             selected = 1)
+```
+
+Page 1
+=====================================
+  
+  ```{r}
+get_grpvars <- reactive(
+  case_when(
+    input$diss == "1" ~ c("week"),
+    input$diss == "2" ~ c("week", "sex"),
+    input$diss == "3" ~ c("week", "lang"))
+)
+
+main_text <- reactive(
+  names(choices)[as.integer(input$diss)]
+)
+
+get_dat4plot <- reactive({
+  grpvars <- get_grpvars()
+  print(grpvars)
+  prep_dat(dat, grpvars)
+})
+
+# plot
+renderDygraph({
+  dat4plot <- get_dat4plot()
+  dygraph(dat4plot, main=main_text()) %>%
+    dyRangeSelector() %>%
+    dyOptions(useDataTimezone = FALSE,
+              stepPlot = TRUE,
+              drawGrid = FALSE,
+              fillGraph = TRUE) 
+}
+)
+```
+
+My answer probably overlaps with @Jon Spring and @Simon.S.A.'s, but I think mine goes further than their in implementation details. 
+
+I found your group counts calculation can be done much more economically - you basically just need to do a group tally, either by week alone or week + sex/lang. You can program the grouping variable(s) using `tidyeval` + `dplyr` in your function (as @Simon.S.A mentioned in his answer).
+
+After having the appropriate group counts, `spread` your data if you have week + sex/lang grouping so that your tibble only has a week column + count(s) for plotting and you don't need to specify the `dySeries` for your dygraph. Finally, convert the tibble to `xts` right before passing to plot by dygraph.
+
+Here is my complete code based on your sample code.
